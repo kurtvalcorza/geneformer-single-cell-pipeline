@@ -37,7 +37,7 @@ weights/geneformer-v2-104m/geneformer/           token_dictionary_gc104M.pkl
 weights/geneformer-v2-104m/                      README.md  dimer-base-manifest.json
 ```
 
-`from_pretrained()` calls `stage_missing_files()` then `verify_snapshot()` (byte size + SHA-256 of every manifest entry; staging fetches only absent entries, only at the pinned revision, and only with `allow_download=True`), loads the three dictionaries through `RestrictedUnpickler`, and then loads the model with `local_files_only=True`, `trust_remote_code=False` and `use_safetensors=True`. The upstream `training_args.bin` and the repository's other checkpoints are deliberately absent from the manifest and are never loaded. `.safetensors` files are git-ignored; the Git repository does not vendor the checkpoint. See `docs/WEIGHTS.md`.
+`from_pretrained()` calls `stage_missing_files()` then `verify_snapshot()` (byte size + SHA-256 of every manifest entry; staging fetches only absent entries, only at the pinned revision, and only with `allow_download=True`), loads the three dictionaries through `RestrictedUnpickler`, and then loads the model with `local_files_only=True`, `trust_remote_code=False` and `use_safetensors=True`. The upstream `training_args.bin` and the repository's other checkpoints are deliberately absent from the manifest and are never loaded. `.safetensors` and `.pkl` files are git-ignored: the repository vendors neither the checkpoint nor the dictionary pickles, and a clone reproduces both from the pinned revision. See `docs/WEIGHTS.md`.
 
 ## The dictionaries are pickles — and are loaded as data
 
