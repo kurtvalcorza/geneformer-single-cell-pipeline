@@ -1,0 +1,40 @@
+{
+  "format": "dimer_hf_snapshot",
+  "formatVersion": 1,
+  "modelKey": "geneformer-v2-104m",
+  "modelId": "ctheodoris/Geneformer",
+  "revision": "1f7fbae4e469a5f4f1af8c111a529cfe1b3829f5",
+  "files": [
+    {
+      "path": "Geneformer-V2-104M/config.json",
+      "bytes": 590,
+      "sha256": "467d4492f0dd53b4d60afffe20812db484ca1cf9fdbeb6a6e060e93564f70859"
+    },
+    {
+      "path": "Geneformer-V2-104M/model.safetensors",
+      "bytes": 417571156,
+      "sha256": "fff5cba29ddd8792991fa77b4872246fbe548a178cebda3775cdc72b67780e7f"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9470,
+      "sha256": "56d6e570b349cbedae9a54634421c94e7af8ea467ce0fdd79193372ae3cbdbd8"
+    },
+    {
+      "path": "geneformer/gene_median_dictionary_gc104M.pkl",
+      "bytes": 1512661,
+      "sha256": "a51c53f6a771d64508dfaf61529df70e394c53bd20856926117ae5d641a24bf5"
+    },
+    {
+      "path": "geneformer/gene_name_id_dict_gc104M.pkl",
+      "bytes": 1660882,
+      "sha256": "fabfa0c2f49c598c59ae432a32c3499a5908c033756c663b5e0cddf58deea8e1"
+    },
+    {
+      "path": "geneformer/token_dictionary_gc104M.pkl",
+      "bytes": 425590,
+      "sha256": "67c445f4385127adfc48dcc072320cd65d6822829bf27dd38070e6e787bc597f"
+    }
+  ],
+  "totalBytes": 421180349
+}
