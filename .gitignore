@@ -15,3 +15,7 @@ weights/**/*.pt
 weights/**/*.pth
 weights/**/*.onnx
 weights/**/.cache/
+
+# Geneformer ships its gene dictionaries as pickles; stage them from the pinned revision instead
+# of vendoring them (they are digest-verified and loaded through RestrictedUnpickler).
+weights/**/*.pkl
