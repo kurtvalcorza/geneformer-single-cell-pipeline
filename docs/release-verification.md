@@ -109,7 +109,8 @@ A known-failing default path in the supported runtime blocks release (REL11).
 
 | Notebook | Commit / notebook blob | Date (UTC) | Executor | Outcome |
 |---|---|---|---|---|
-| `geneformer_single_cell_colab.ipynb` | ae8acce` / `792c87c11c03 | 2026-09-18 | Local pre-flight harness (Windows, CPython 3.12, CPU, `google.colab` shim, pins pre-installed) | PASS — pre-flight only, **not** promotion evidence |
+| `geneformer_single_cell_colab.ipynb` | `366fc71` / `792c87c11c03` | 2026-09-18 | Kaggle batch kernel `dimer-nb2-geneformer-single-cell` v1 (Python 3.12.13, Tesla T4, empty Hugging Face cache, no repository checkout) | **PASS** — 14/14 code cells after the expected fresh-process restart following dependency installation; supported clean-runtime evidence |
+| `geneformer_single_cell_colab.ipynb` | `ae8acce` / `792c87c11c03` | 2026-09-18 | Local pre-flight harness (Windows, CPython 3.12, CPU, `google.colab` shim, pins pre-installed) | PASS — pre-flight only, **not** promotion evidence |
 
 ## Recorded executions
 
@@ -120,11 +121,12 @@ general estimates.
 
 | Date (UTC) | Commit / notebook blob | Executor | Path exercised | Wall | Outcome |
 |---|---|---|---|---|---|
-| 2026-09-18 | ae8acce` / `792c87c11c03 | Local pre-flight harness (Windows, CPython 3.12, CPU float32) | Default sample path (validate → split → embed → baselines → adapt → evaluate → classify → export → reload) | 150.1 s | **PASSED** — pre-flight; hosted clean-runtime run still required |
+| 2026-09-18 | `366fc71` / `792c87c11c03` | Kaggle batch kernel `dimer-nb2-geneformer-single-cell` v1 (Python 3.12.13, Tesla T4, clean cache) | Default sample path (download and verify the model snapshot → validate → tokenize → split → embed → baselines → adapt → evaluate → classify → export → reload) | 279.4 s | **PASSED** — 14/14 code cells; test accuracy/macro-F1/AUROC 1.0 (n=16) against majority and library-size accuracy 0.5; reload parity 0.0. One expected fresh-process restart followed the install cell. |
+| 2026-09-18 | `ae8acce` / `792c87c11c03` | Local pre-flight harness (Windows, CPython 3.12, CPU float32) | Default sample path (validate → split → embed → baselines → adapt → evaluate → classify → export → reload) | 150.1 s | **PASSED** — pre-flight; hosted clean-runtime run still required |
 
 ## Current status
 
-The notebook source is complete and passes all static checks, including the generator parity checks (`--check` OK).
-A local pre-flight execution of the committed blob completed the whole default path on CPU, which catches defects but
-is **not** a supported runtime under REL1/REL10. The repository stays at **Candidate** until a Colab or fresh-container
-run of the exact release revision is recorded above.
+The exact notebook blob passed the complete default path in a clean Kaggle Tesla T4 runtime with an empty Hugging Face
+cache and no repository checkout. This satisfies the hosted clean-runtime execution gate for the recorded revision.
+The maintainer approved promotion on 2026-09-18, so the repository is **Release-grade** for this verified tutorial
+carrier. The execution record remains sample-sanity evidence, not a benchmark or production-readiness claim.
