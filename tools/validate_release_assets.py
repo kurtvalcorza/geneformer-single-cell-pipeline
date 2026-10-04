@@ -1,6 +1,6 @@
 """Static release-asset validation for the Geneformer V2-104M single-cell DIMER pipeline.
 
-Checks the STANDALONE tutorial notebook (DIMER Notebook Specification 2.0 §4), the tutorial
+Checks the STANDALONE tutorial notebook (DIMER Notebook Specification 2.2 §4), the tutorial
 registry, model card, README, STATUS.md and weight documentation for source conformance and
 cross-document identity consistency, and runs the generator parity checks (PAR1-PAR3).
 
@@ -50,7 +50,18 @@ CODE_MARKERS = (
     "records = load_byod_dataset(byod_path)",
     "dataset_manifest = validate_dataset(records, vocabulary=vocabulary)",
     "splits = split_dataset(records, val_fraction=VAL_FRACTION, test_fraction=TEST_FRACTION, seed=SEED)",
-    "write_dataset_csv(records, 'outputs/geneformer_single_cell_sample_dataset.csv')",
+    # GF-m1: splits validated in Section 4 with the minimums adapt/evaluate apply; a new dataset drops any earlier
+    # head; BYOD has a path field read without google.colab and is written under its own name
+    "split_manifests = validate_splits(splits, CLASSES, vocabulary=vocabulary)",
+    "pipe.reset_adaptation()",
+    "BYOD_PATH = ''",
+    "if len(uploaded) != 1:",
+    "dataset_csv = 'outputs/geneformer_single_cell_sample_dataset.csv'",
+    "dataset_csv = 'outputs/geneformer_single_cell_byod_dataset.csv'",
+    "write_dataset_csv(records, dataset_csv)",
+    # GF-m3: one row per Section 8 run; every export of a run describes one model
+    "run_history = globals().get('run_history', [])",
+    "assert evaluation_report['adaptation']['epochs'] == artifact_manifest['adaptation']['epochs'] == EPOCHS",
     # Stage 5: the rank-value encoding read by hand
     "encoded_a = rank_value_encode(example_a['counts'], vocabulary)",
     "encoded_b = rank_value_encode(example_b['counts'], vocabulary)",
@@ -85,6 +96,33 @@ CODE_MARKERS = (
     "safetensors.__version__",
     "'device': pipe.device",
 )
+# Learner-facing text the review fixes removed; it must not come back (GF-M1 restart-dependent install,
+# GF-m1 the per-split minimum surprise and the 'set USE_BYOD and re-run from that cell' scope, GF-m2 template artefact).
+STALE_MARKDOWN = (
+    "Restart the runtime, then rerun",
+    "installs the pinned dependencies",
+    "re-run from that cell",
+    "re-run from this cell",
+    "{{id, counts, label}}",
+    "Optional experiments (do not affect the default path)",
+)
+# The guided layer (NOTEBOOK_SPEC 2.2 §3.5, GDL1-GDL14; review GF-M2): each marker with its minimum count.
+GUIDED_MARKERS = (
+    ("**Who this is for.**", 1),
+    ("**Input → Model → Output.**", 1),
+    ("**How to use this notebook.**", 1),
+    ("**Roadmap:**", 1),
+    ("**Predict before running:**", 9),
+    ("**What to notice:**", 9),
+    ("<summary>Check your reasoning</summary>", 10),
+    ("## 13. Your turn — change one thing", 1),
+    ("**Predict → Change one thing → Run → Observe → Explain.**", 1),
+    ("## Troubleshooting", 1),
+    ("## Glossary", 1),
+    ("## Conclusion (your notes)", 1),
+    ("> **Infrastructure.**", 3),
+    ("**Next experiments**", 1),
+)
 # Profile-specific learner-facing statements.
 MARKDOWN_MARKERS = (
     "**Capability:** rank-value encoding of single-cell transcriptomes, cell embeddings, and bounded cell-state classification fine-tuning",
@@ -95,6 +133,10 @@ MARKDOWN_MARKERS = (
     "in-silico perturbation, gene classification",
     "donor- or batch-level split",
     "pinned vocabulary is human",
+    # GF-m4: Section 6 says what the two cosine numbers mean and why they are close
+    "read the gap between them, not their size",
+    # GF-m3: the activity names the cell to re-run from
+    "select the Section 8 cell and choose **Runtime → Run after**",
 )
 # Direct-library use that must stay inside the carried module cells (G2: the notebook calls the
 # pipeline API, it does not reimplement it). Checked on every code cell except the embedded ones.
@@ -118,10 +160,10 @@ FORBIDDEN_OUTSIDE_MODULE = (
 # ---------------------------------------------------------------------------
 # Shared checks. Everything below is source/structure validation only. Passing
 # these checks is NOT clean-runtime execution evidence under DIMER Notebook
-# Specification 2.0; see docs/release-verification.md for the release gate.
+# Specification 2.2; see docs/release-verification.md for the release gate.
 # ---------------------------------------------------------------------------
 
-NOTEBOOK_SPEC = "2.0"
+NOTEBOOK_SPEC = "2.2"
 ALLOWED_PROFILES = {"E2E", "ARTIFACT-INFERENCE", "TASK-INFERENCE", "MULTI-CAPABILITY", "SMOKE"}
 STATUS_TOKENS = ("Candidate", "Release-grade")
 PLACEHOLDER = re.compile(r"\b(TODO|TBD|FIXME)\b|Insert text here|Tooltip:", re.I)
@@ -446,9 +488,15 @@ def _validate_notebook_structure(path: Path, notebook: dict) -> tuple[list[tuple
     _pkg_dir = ROOT / _template.get("package_dir", f"src/{PACKAGE}")
     _order = _load_tool("build_notebook")._module_order(_pkg_dir, list(_template.get("modules", ["pipeline.py"])))
     module_sha = hashlib.sha256("".join(_read(_pkg_dir / m) for m in _order).encode("utf-8")).hexdigest()
+    # GF-m2: the concatenated digest is labelled as a concatenation; every per-file digest equals that file's SHA-256.
     _check(
-        generated.get("module_sha256") == module_sha,
-        f"{path.name}: generated_from.module_sha256 does not match src/ (PAR4: regenerate the notebook)",
+        generated.get("modules_sha256_concat") == module_sha and "module_sha256" not in generated,
+        f"{path.name}: generated_from.modules_sha256_concat does not match src/ (PAR4: regenerate the notebook)",
+    )
+    _rel = _template.get("package_dir", f"src/{PACKAGE}")
+    _check(
+        generated.get("per_module_sha256") == {f"{_rel}/{m}": hashlib.sha256(_read(_pkg_dir / m).encode("utf-8")).hexdigest() for m in _order},
+        f"{path.name}: generated_from.per_module_sha256 must give each carried module's own SHA-256",
     )
     _check(bool(generated.get("generator")), f"{path.name}: generated_from.generator is required")
     cells = notebook.get("cells", [])
@@ -539,8 +587,13 @@ def _validate_embedded_modules(path: Path, notebook: dict, build) -> list[int]:
             cell["metadata"]["dimer"].get("module_sha256") == context["per_module_sha256"][rel],
             f"{path.name}: cell {index} module_sha256 tag does not match {rel}",
         )
+        # GF-M2: a carried cell is the module plus the generator's one Infrastructure title line, collapsed.
         _check(
-            _cell_source(cell).rstrip("\n") + "\n" == context["embedded"][module],
+            _cell_source(cell).startswith(build.CARRIED_TITLE_PREFIX) and cell.get("metadata", {}).get("cellView") == "form",
+            f"{path.name}: carried module cell {index} must start with the generator's Infrastructure title and be collapsed (cellView: form)",
+        )
+        _check(
+            build.strip_carried_title(_cell_source(cell)).rstrip("\n") + "\n" == context["embedded"][module],
             f"{path.name}: embedded module cell {index} differs from {rel} (PAR1); regenerate the notebook",
         )
     return [index for index, _ in tagged]
@@ -607,8 +660,24 @@ def _validate_notebook_content(
     _check(not missing, f"{path.name}: missing required source markers: {missing}")
     present = [label for label, pattern in FORBIDDEN_PATTERNS if pattern.search(code)]
     _check(not present, f"{path.name}: forbidden/insecure source: {present}")
-    leaked = [marker for marker in FORBIDDEN_OUTSIDE_MODULE if marker in outside]
+    # The two kernel cells (GF-M1) download the pinned uv wheel themselves; every learner cell is still checked.
+    kernel_cells = {index for index, source, _tree in code_cells if "# dimer: kernel cell" in source}
+    learner = "\n".join(text for index, text in stripped.items() if index not in embedded and index not in kernel_cells)
+    leaked = [marker for marker in FORBIDDEN_OUTSIDE_MODULE if marker in learner]
     _check(not leaked, f"{path.name}: direct library use outside the carried module cell (G2): {leaked}")
+    # GF-M1: exactly two kernel cells (the isolated install and the router); everything else runs in the uv environment.
+    kernel_raw = [source for _index, source, _tree in code_cells if "# dimer: kernel cell" in source]
+    _check(len(kernel_raw) == 2, f"{path.name}: exactly two kernel cells (isolated install and router) are expected (GF-M1)")
+    install = next((k for k in kernel_raw if "LOCK_TEXT = r" in k), "")
+    for needed in ('"--managed-python"', '"--require-hashes"', '"--only-binary"', '":all:"', "UV_SHA256", "LOCK_SHA256", 'platform.machine() != "x86_64"'):
+        _check(needed in install, f"{path.name}: the isolated install cell must use {needed} (GF-M1)")
+    _check("_ip.input_transformers_cleanup.append(_route_to_isolated_runtime)" in "\n".join(kernel_raw), f"{path.name}: later cells must be routed to the isolated environment (GF-M1)")
+    _check("module.__spec__ = importlib.machinery.ModuleSpec(name, None, is_package=package)" in "\n".join(kernel_raw), f"{path.name}: the worker's google.colab stubs must carry a module spec")
+    titled = sum(1 for _index, source, _tree in code_cells if source.startswith("# @title Infrastructure:"))
+    _check(titled == 7, f"{path.name}: install, router, runtime, three carried-module and model cells must carry an Infrastructure title (GF-M2), found {titled}")
+    # GF-m1: the BYOD branch must work without google.colab when BYOD_PATH is set (import only in the upload branch).
+    data_cell = next((source for _index, source, _tree in code_cells if "BYOD_PATH = ''" in source), "")
+    _check(data_cell.index("if BYOD_PATH:") < data_cell.index("from google.colab import files") if "if BYOD_PATH:" in data_cell else False, f"{path.name}: google.colab may be imported only when BYOD_PATH is empty (GF-m1)")
     _check(
         f"pipe = {MODEL_LOAD_EXPR}" in outside,
         f"{path.name}: must load through {MODEL_LOAD_EXPR} (INF1)",
@@ -619,6 +688,11 @@ def _validate_notebook_content(
         _check(filename in code, f"{path.name}: must export {filename}")
     missing_md = [marker for marker in COMMON_MARKDOWN_MARKERS + MARKDOWN_MARKERS if marker not in markdown]
     _check(not missing_md, f"{path.name}: missing learner-facing markers: {missing_md}")
+    stale = [marker for marker in STALE_MARKDOWN if marker in markdown]
+    _check(not stale, f"{path.name}: stale learner-facing text: {stale}")
+    _check("{{" not in markdown and "}}" not in markdown, f"{path.name}: markdown must not show doubled braces (GF-m2)")
+    short = [(marker, markdown.count(marker), least) for marker, least in GUIDED_MARKERS if markdown.count(marker) < max(least, 1)]
+    _check(not short, f"{path.name}: guided layer incomplete (marker, found, needed): {short}")
     _check(f"**Profile:** `{EXPECTED_PROFILE}`" in markdown, f"{path.name}: markdown must state the profile")
     _check(f"https://huggingface.co/{model_id}" in markdown, f"{path.name}: references must link {model_id}")
 

@@ -1,2 +1,5 @@
 # Snapshot files are digest-verified byte-for-byte against dimer-base-manifest.json; never convert their line endings.
 weights/** -text
+
+# Executed notebooks and run logs are byte-exact execution evidence.
+docs/execution-evidence/** -text

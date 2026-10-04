@@ -1,0 +1,80 @@
+[colab] Parsing notebook '/home/kurt/colab-runs/geneformer-single-cell-pipeline-35126b3-2cf24b/geneformer_single_cell_colab_35126b3_colab-cli-t4.ipynb'...
+[colab] Executing cell 1/17 - Infrastructure: install the locked runtime into an isolated environment...
+{'isolated_environment': '/content/dimer_isolated_env', 'isolated_python': '3.12.12', 'kernel_python': '3.13.15', 'locked_packages': 47, 'setup_seconds': 53}
+[colab] Executing cell 2/17 - Infrastructure: route the remaining cells to the isolated environment...
+Every later code cell now runs in /content/dimer_isolated_env/bin/python (pid 1452).
+[colab] Executing cell 3/17 - Infrastructure: record the runtime...
+{'notebook_source': {'repository': 'geneformer-single-cell-pipeline', 'repository_revision': '958ce3045da74d6f69c4e909ebea8ec0ae73100c', 'embedded_module': 'src/geneformer_single_cell_pipeline/pipeline.py', 'embedded_modules': ['src/geneformer_single_cell_pipeline/metrics.py', 'src/geneformer_single_cell_pipeline/pipeline.py', 'src/geneformer_single_cell_pipeline/samples.py'], 'modules_sha256_concat': 'e22aa4660efbe10353566e8dea2b7a12d89f1fb29fac971c77ef615be3fdd5a2', 'per_module_sha256': {'src/geneformer_single_cell_pipeline/metrics.py': '6d582fca67c585a7b584c283840d512e259da2e329b542556c0772d01139c4ec', 'src/geneformer_single_cell_pipeline/pipeline.py': '86c65c5a23b7d880d648ecc484e02b2d14224c07ba0fc245adfcf8ad6be93c34', 'src/geneformer_single_cell_pipeline/samples.py': '56b0b46fdd15ad07219aaad26e16e83b914e610624beefef2947dc47a5b77c4d'}, 'generator': 'build_notebook.py/2.1', 'notebook_spec': '2.2'}, 'python': '3.12.12', 'torch': '2.14.0+cu130', 'transformers': '4.57.6', 'safetensors': '0.8.0', 'cuda': True}
+[colab] Executing cell 4/17 - Infrastructure: carried module `src/geneformer_single_cell_pipeline/metrics.py` (you may run it without reading it)...
+[colab] Executing cell 5/17 - Infrastructure: carried module `src/geneformer_single_cell_pipeline/pipeline.py` (you may run it without reading it)...
+[colab] Executing cell 6/17 - Infrastructure: carried module `src/geneformer_single_cell_pipeline/samples.py` (you may run it without reading it)...
+[colab] Executing cell 7/17 - Infrastructure: pin, stage and verify the model (you may run it without reading it)...
+{'model_id': 'ctheodoris/Geneformer', 'revision': '1f7fbae4e469a5f4f1af8c111a529cfe1b3829f5', 'license': 'apache-2.0', 'files': 6, 'total_bytes': 421180349}
+{'weights_dir': '/content/weights/geneformer-v2-104m', 'fetched': ['Geneformer-V2-104M/config.json', 'Geneformer-V2-104M/model.safetensors', 'README.md', 'geneformer/gene_median_dictionary_gc104M.pkl', 'geneformer/gene_name_id_dict_gc104M.pkl', 'geneformer/token_dictionary_gc104M.pkl']}
+{'verified_files': 6, 'revision': '1f7fbae4e469a5f4f1af8c111a529cfe1b3829f5'}
+{'device': 'cuda:0', 'source': 'local-snapshot'}
+[colab] Executing cell 8/17 - geneformer_single_cell-17...
+{'tokens': 20275, 'corpus_medians': 42005, 'gene_symbols': 63675, 'encodable_gene_ids': 20271, 'special_tokens': {'<pad>': 0, '<mask>': 1, '<cls>': 2, '<eos>': 3}}
+{'data_source': 'synthetic median-matched programme dataset (seed 20260918, 64 cells)', 'n_records': 64, 'classes': ['programme-A', 'programme-B'], 'class_counts': {'programme-A': 32, 'programme-B': 32}}
+{'detected_genes': {'min': 348, 'max': 348, 'mean': 348.0}, 'encodable_genes': {'min': 348, 'max': 348, 'mean': 348.0}, 'library_size': {'min': 19987.0, 'max': 20010.0, 'mean': 19998.8}}
+{'ceilings': {'max_genes_per_cell': 4094, 'min_detected_genes': 10, 'max_records': 2000, 'max_classes': 20, 'min_records': 8, 'min_records_per_class': 3}, 'digest': 'f6ac3ca31910f1d0...'}
+{'train': {'n': 36, 'class_counts': {'programme-A': 18, 'programme-B': 18}}, 'validation': {'n': 12, 'class_counts': {'programme-A': 6, 'programme-B': 6}}, 'test': {'n': 16, 'class_counts': {'programme-A': 8, 'programme-B': 8}}}
+{'written': 'outputs/geneformer_single_cell_sample_dataset.csv'}
+[colab] Executing cell 9/17 - geneformer_single_cell-19...
+{'id': 'a-cell-000', 'label': 'programme-A', 'library_size': 19995.0, 'detected': 348, 'encoded': 348, 'tokens_kept': 348, 'truncated': 0, 'unknown_genes': 0, 'genes_without_median': 0}
+{'id': 'b-cell-000', 'label': 'programme-B', 'library_size': 20001.0, 'detected': 348, 'encoded': 348, 'tokens_kept': 348, 'truncated': 0, 'unknown_genes': 0, 'genes_without_median': 0}
+top 8 ranked genes, programme-A: ['ENSG00000275152', 'ENSG00000133800', 'ENSG00000104059', 'ENSG00000128272', 'ENSG00000132680', 'ENSG00000113282', 'ENSG00000147874', 'ENSG00000109272']
+top 8 ranked genes, programme-B: ['ENSG00000185304', 'ENSG00000239306', 'ENSG00000164104', 'ENSG00000198624', 'ENSG00000179841', 'ENSG00000289549', 'ENSG00000137547', 'ENSG00000168243']
+same genes detected in both cells: True
+first 8 token ids: [19447, 6694, 2849, 5925, 6543, 4125, 8903, 3622]
+[colab] Executing cell 10/17 - geneformer_single_cell-21...
+{'n_cells': 8, 'dimension': 768, 'tokens_kept': [348, 348, 348, 348], 'pooling': "mean of the last hidden state over the cell's tokens (padding excluded)"}
+{'mean_cosine_within_class': 0.9961, 'mean_cosine_between_classes': 0.9948, 'note': 'inspection only; embeddings are unlabelled representations'}
+wrote outputs/geneformer_single_cell_embeddings.csv
+[colab] Executing cell 11/17 - geneformer_single_cell-23...
+{'baseline': 'majority-class', 'predicted_label': 'programme-A', 'accuracy': 0.5, 'macro_f1': 0.3333}
+{'baseline': 'library-size threshold', 'rule': "predict 'programme-B' when total counts >= 19998", 'train_accuracy': 0.6389, 'accuracy': 0.5, 'macro_f1': 0.4921, 'auroc': 0.4922}
+[colab] Executing cell 12/17 - geneformer_single_cell-25...
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at /content/weights/geneformer-v2-104m/Geneformer-V2-104M and are newly initialized: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight', 'classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+{'method': 'gradient fine-tuning (AdamW) of the classification head and pooler and the last 2 encoder layer(s)', 'trainable_parameters': 14767874, 'total_parameters': 104366594, 'precision': 'float32', 'device': 'cuda:0', 'seconds': 5.0}
+{'epoch': 1, 'train_loss': 1.053343, 'n_batches': 9, 'val_accuracy': 0.5, 'val_macro_f1': 0.3333}
+{'epoch': 2, 'train_loss': 0.70461, 'n_batches': 9, 'val_accuracy': 0.5, 'val_macro_f1': 0.3333}
+{'epoch': 3, 'train_loss': 0.513794, 'n_batches': 9, 'val_accuracy': 1.0, 'val_macro_f1': 1.0}
+{'epoch': 4, 'train_loss': 0.043388, 'n_batches': 9, 'val_accuracy': 1.0, 'val_macro_f1': 1.0}
+[colab] Executing cell 13/17 - geneformer_single_cell-27...
+{'split': 'validation', 'n': 12, 'accuracy': 1.0, 'macro_f1': 1.0, 'auroc': 1.0}
+{'split': 'test', 'n': 16, 'accuracy': 1.0, 'macro_f1': 1.0, 'auroc': 1.0}
+{'class': 'programme-A', 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'support': 8, 'predicted': 8}
+{'class': 'programme-B', 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'support': 8, 'predicted': 8}
+{'delta_vs_majority': {'accuracy': 0.5, 'macro_f1': 0.6667}, 'report': 'outputs/geneformer_single_cell_evaluation_report.json'}
+[colab] Executing cell 14/17 - geneformer_single_cell-29...
+{'new_source': 'freshly generated cells (seed 7)', 'verdict': 'accepted', 'n_cells': 6, 'max_tokens_observed': 348}
+{'decision_rule': 'argmax over softmax(logits); scores are softmax outputs, not calibrated probabilities'}
+{'id': 'a-cell-000', 'predicted': 'programme-A', 'score': 0.9982, 'true_label': 'programme-A'}
+{'id': 'b-cell-000', 'predicted': 'programme-B', 'score': 0.9986, 'true_label': 'programme-B'}
+{'id': 'a-cell-001', 'predicted': 'programme-A', 'score': 0.9983, 'true_label': 'programme-A'}
+{'id': 'b-cell-001', 'predicted': 'programme-B', 'score': 0.9986, 'true_label': 'programme-B'}
+{'id': 'a-cell-002', 'predicted': 'programme-A', 'score': 0.9984, 'true_label': 'programme-A'}
+{'id': 'b-cell-002', 'predicted': 'programme-B', 'score': 0.9986, 'true_label': 'programme-B'}
+{'matches': 6, 'of': 6, 'note': 'sanity check on generated labels, not an evaluation'}
+wrote outputs/geneformer_single_cell_predictions.csv
+[colab] Executing cell 15/17 - geneformer_single_cell-31...
+{'format': 'org.valcorza.geneformer-single-cell.adapter.v1', 'base_model': {'model_id': 'ctheodoris/Geneformer', 'model_revision': '1f7fbae4e469a5f4f1af8c111a529cfe1b3829f5', 'subfolder': 'Geneformer-V2-104M', 'license': 'apache-2.0'}, 'classes': ['programme-A', 'programme-B'], 'epochs': 4, 'trainable_layers': 2, 'n_tensors': 36, 'files': [{'path': 'adapter.safetensors', 'bytes': 59075552, 'sha256': 'b6089ca9de072674b23e275b16a2f7ebff7ede6cc8ab0e24f37c43c348c9aebb'}]}
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at /content/weights/geneformer-v2-104m/Geneformer-V2-104M and are newly initialized: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight', 'classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+{'reload_parity': 'PASS', 'labels_equal': True, 'max_abs_score_diff': 0.0, 'loaded_from': 'outputs/geneformer_single_cell_adapter'}
+[colab] Executing cell 16/17 - geneformer_single_cell-33...
+outputs/:
+  - outputs/geneformer_single_cell_adapter/adapter.safetensors (57691.0 KB)
+  - outputs/geneformer_single_cell_adapter/manifest.json (3.8 KB)
+  - outputs/geneformer_single_cell_embeddings.csv (63.1 KB)
+  - outputs/geneformer_single_cell_evaluation_report.json (4.6 KB)
+  - outputs/geneformer_single_cell_predictions.csv (0.4 KB)
+  - outputs/geneformer_single_cell_result.json (14.5 KB)
+  - outputs/geneformer_single_cell_sample_dataset.csv (74.3 KB)
+[colab] Executing cell 17/17 - geneformer_single_cell-35...
+run | data | epochs | trainable_layers | learning_rate | trainable_parameters | final_val_accuracy | test_accuracy | test_macro_f1 | test_auroc
+1 | sample | 4 | 2 | 0.0002 | 14767874 | 1.0 | 1.0 | 1.0 | 1.0
+One run so far. Set EPOCHS = 2 in Section 8, select that cell and choose Runtime > Run after; this table then shows both runs.
+[colab] Saving notebook with outputs to '/home/kurt/colab-runs/geneformer-single-cell-pipeline-35126b3-2cf24b/geneformer_single_cell_colab_35126b3_colab-cli-t4_output.ipynb'...
