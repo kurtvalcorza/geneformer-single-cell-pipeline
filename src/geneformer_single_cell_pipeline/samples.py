@@ -33,6 +33,13 @@ MIN_RECORDS = 8
 MAX_RECORDS = 2_000
 MAX_CLASSES = 20
 MIN_RECORDS_PER_CLASS = 3
+# A split only has to hold every class once: `split_dataset` guarantees that for any dataset that passes
+# `validate_dataset` (>= 3 records per class), and `adapt`/`evaluate` validate splits with these minimums
+# (review GF-m1: they used to re-apply the 8-record dataset minimum to each split, so a dataset at the stated
+# minimum was accepted in Section 4 and refused in Section 8).
+MIN_SPLIT_RECORDS_PER_CLASS = 1
+SPLIT_NAMES = ("train", "validation", "test")
+BYOD_SUFFIXES = (".csv", ".json", ".jsonl")
 MAX_ID_CHARS = 64
 MAX_LABEL_CHARS = 64
 REQUIRED_COLUMNS = ("id", "counts", "label")
@@ -269,13 +276,49 @@ def split_dataset(
         n_val = max(1, round(len(rows) * val_fraction))
         n_test = max(1, round(len(rows) * test_fraction))
         if len(rows) - n_val - n_test < 1:
-            raise ValueError(f"class {cls!r} has {len(rows)} records; too few to leave one per split")
+            raise ValueError(
+                f"class {cls!r} has {len(rows)} records; with val_fraction={val_fraction} and "
+                f"test_fraction={test_fraction} it needs at least {n_val + n_test + 1} to leave one per split"
+            )
         out["validation"].extend(rows[:n_val])
         out["test"].extend(rows[n_val : n_val + n_test])
         out["train"].extend(rows[n_val + n_test :])
     for part in out.values():
         rng.shuffle(part)
     return out
+
+
+def validate_splits(
+    splits: Mapping[str, Sequence[Mapping[str, Any]]],
+    classes: Sequence[str] | None = None,
+    *,
+    vocabulary: GeneVocabulary | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Validate each split with the minimums `adapt` and `evaluate` apply; return one manifest per split.
+
+    Every split must hold every class at least `MIN_SPLIT_RECORDS_PER_CLASS` times, with labels drawn
+    from the training split's classes (or `classes`). A refusal names the split (review GF-m1).
+    """
+    missing = [name for name in SPLIT_NAMES if name not in splits]
+    if missing:
+        raise ValueError(f"splits {missing} are missing; expected {list(SPLIT_NAMES)}")
+    manifests: dict[str, dict[str, Any]] = {}
+    class_list = list(classes) if classes is not None else None
+    for name in SPLIT_NAMES:
+        try:
+            manifest = validate_dataset(
+                splits[name],
+                vocabulary=vocabulary,
+                classes=class_list,
+                min_records=MIN_SPLIT_RECORDS_PER_CLASS,
+                min_per_class=MIN_SPLIT_RECORDS_PER_CLASS,
+            )
+        except (TypeError, ValueError) as exc:
+            raise type(exc)(f"{name} split: {exc}") from exc
+        if class_list is None:
+            class_list = manifest["classes"]
+        manifests[name] = manifest
+    return manifests
 
 
 def load_byod_dataset(source: str | Path) -> list[dict[str, Any]]:
@@ -289,10 +332,24 @@ def load_byod_dataset(source: str | Path) -> list[dict[str, Any]]:
     path = Path(source)
     if not path.is_file():
         raise FileNotFoundError(f"BYOD dataset file not found: {path}")
-    text = path.read_text(encoding="utf-8-sig")
+    # The suffix is checked before the file is decoded, so a binary single-cell file (.h5ad, .loom, .mtx.gz)
+    # gets this message rather than a UnicodeDecodeError (review GF-m1).
+    suffix = path.suffix.lower()
+    if suffix not in BYOD_SUFFIXES:
+        raise ValueError(
+            f"unsupported BYOD file type {suffix!r} ({path.name}); use .csv, .json or .jsonl. An .h5ad, "
+            ".loom or matrix-market file must first be exported to a genes-as-columns CSV "
+            "(id, one column per gene, label)"
+        )
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"{path.name} is not UTF-8 text ({exc.reason} at byte {exc.start}); save it as UTF-8 "
+            "(in a spreadsheet: 'CSV UTF-8') and try again"
+        ) from exc
     if not text.strip():
         raise ValueError(f"BYOD dataset file is empty: {path}")
-    suffix = path.suffix.lower()
     records: list[dict[str, Any]] = []
     if suffix == ".csv":
         reader = csv.reader(text.splitlines())
@@ -328,7 +385,7 @@ def load_byod_dataset(source: str | Path) -> list[dict[str, Any]]:
                 records.append(json.loads(line))
             except json.JSONDecodeError as exc:
                 raise ValueError(f"line {line_no} is not valid JSON: {exc}") from exc
-    elif suffix == ".json":
+    else:  # .json (the suffix was checked above)
         try:
             data = json.loads(text)
         except json.JSONDecodeError as exc:
@@ -336,8 +393,6 @@ def load_byod_dataset(source: str | Path) -> list[dict[str, Any]]:
         if not isinstance(data, list):
             raise TypeError("JSON dataset must be a top-level array of objects")
         records = data
-    else:
-        raise ValueError(f"unsupported BYOD file type {suffix!r}; use .csv, .json or .jsonl")
     validate_dataset(records)
     return [dict(r) for r in records]
 

@@ -522,12 +522,30 @@ class GeneformerPipeline:
             "adaptation": dict(self.adaptation),
         }
 
+    def reset_adaptation(self) -> None:
+        """Drop any adapted head (and its class list), so `classify`, `evaluate` and `save_artifact`
+        refuse to run until `adapt` or `from_artifact` succeeds again. The verified base encoder used by
+        `embed` is untouched. The tutorial calls it whenever the dataset changes (review GF-m1), so a
+        failed adaptation on new data can never leave an earlier head to be evaluated or exported."""
+        self.classes = []
+        self._classifier = None
+        self.classifier_model = None
+        self.adaptation = {}
+
     def evaluate(self, records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-        """Held-out cell-state classification metrics (see metrics.classification_metrics)."""
+        """Held-out cell-state classification metrics (see metrics.classification_metrics).
+
+        Any non-empty labelled split whose labels belong to the adapted classes is accepted; the
+        8-record dataset minimum applies to a whole dataset, not to one of its splits (review GF-m1).
+        """
         from .metrics import classification_metrics
         from .samples import validate_dataset
 
-        validate_dataset(records, vocabulary=self.vocabulary, classes=self.classes)
+        if self._classifier is None or not self.classes:
+            raise RuntimeError("evaluate requires an adapted head (call adapt or from_artifact first)")
+        validate_dataset(
+            records, vocabulary=self.vocabulary, classes=self.classes, min_records=1, min_per_class=0
+        )
         predicted: list[str] = []
         scores: list[list[float]] = []
         for start in range(0, len(records), MAX_CELLS_PER_CALL):
@@ -557,21 +575,40 @@ class GeneformerPipeline:
         initialised), freezes every parameter except the head and the last `trainable_layers`
         encoder layers, and runs AdamW for `epochs` passes. Validation records are monitored per
         epoch only; the final epoch's weights are kept (no selection).
+
+        Each split must hold every class at least once (`samples.MIN_SPLIT_RECORDS_PER_CLASS`); a
+        refusal names the split. Any earlier head is dropped first, so a refused or failed call leaves
+        no head behind (review GF-m1).
         """
         if self.model is None or self.weights_dir is None:
             raise RuntimeError("adapt requires a pipeline built by from_pretrained (no loaded base model)")
         from .samples import validate_dataset
 
+        self.reset_adaptation()
         if not 1 <= int(epochs) <= 50:
             raise ValueError("epochs must be in 1..50 (tutorial-scale adaptation)")
         if not 1 <= int(batch_size) <= MAX_CELLS_PER_CALL:
             raise ValueError(f"batch_size must be in 1..{MAX_CELLS_PER_CALL}")
         if not 0 <= int(trainable_layers) <= 12:
             raise ValueError("trainable_layers must be in 0..12 (the checkpoint has 12 encoder layers)")
-        train_manifest = validate_dataset(train_records, vocabulary=self.vocabulary, classes=classes)
+        try:
+            train_manifest = validate_dataset(
+                train_records, vocabulary=self.vocabulary, classes=classes, min_records=1, min_per_class=1
+            )
+        except (TypeError, ValueError) as exc:
+            raise type(exc)(f"train split: {exc}") from exc
         class_list = list(train_manifest["classes"])
         if val_records is not None:
-            validate_dataset(val_records, vocabulary=self.vocabulary, classes=class_list)
+            try:
+                validate_dataset(
+                    val_records,
+                    vocabulary=self.vocabulary,
+                    classes=class_list,
+                    min_records=1,
+                    min_per_class=1,
+                )
+            except (TypeError, ValueError) as exc:
+                raise type(exc)(f"validation split: {exc}") from exc
 
         import random
 
