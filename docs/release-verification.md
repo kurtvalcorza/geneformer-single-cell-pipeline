@@ -139,6 +139,35 @@ general estimates.
 | 2026-09-18 | `366fc71` / `792c87c11c03` | Kaggle batch kernel `dimer-nb2-geneformer-single-cell` v1 (Python 3.12.13, Tesla T4, clean cache) | Default sample path (download and verify the model snapshot → validate → tokenize → split → embed → baselines → adapt → evaluate → classify → export → reload) | 279.4 s | **Passed only after a manual restart** — not a one-pass Run all, not promotion evidence. 14/14 code cells after one fresh-process restart following the in-kernel install; test accuracy/macro-F1/AUROC 1.0 (n=16) against majority and library-size accuracy 0.5; reload parity 0.0. |
 | 2026-09-18 | `ae8acce` / `792c87c11c03` | Local pre-flight harness (Windows, CPython 3.12, CPU float32) | Default sample path (validate → split → embed → baselines → adapt → evaluate → classify → export → reload) | 150.1 s | **PASSED** — pre-flight; hosted clean-runtime run still required |
 | 2026-10-04 | review-fix branch (revised notebook, before commit) | Local pre-flight harness (Windows, CPython 3.12, CPU float32, torch 2.14.0+cpu, transformers 4.57.6, `DIMER_NOTEBOOK_CI_PREINSTALLED=1`, snapshot pre-staged, `CUDA_VISIBLE_DEVICES=-1`) | Default path (15/15 learner cells: split 36/12/16, majority 0.5 and library-size 0.5 / AUROC 0.4922, 14,767,874 of 104,366,594 trained, validation accuracy 0.5, 0.5, 1.0, 1.0, test 1.0/1.0/1.0, 6/6 new cells at ~0.998, 36 tensors, parity 0.0, 7 files); Section 13 activity (`EPOCHS = 2`, Run after from Section 8: test accuracy 0.5 with AUROC 1.0, every export `epochs: 2`); BYOD at the stated minimum via `BYOD_PATH` (8-record CSV, splits 4/2/2, through export and reload, sample template unchanged); refusals: `.h5ad`, cancelled upload and a non-Colab runtime with no `BYOD_PATH` with one-line messages, and after a refusal evaluation refuses (no head) | 149.3 s (all journeys; default learner cells 90.8 s) | **PASSED** — pre-flight only, **not** promotion evidence; the isolated-environment install path (Linux) was not exercised |
+| 2026-10-04 | `35126b3` / `f3849c55ba63` | Colab CLI 0.7.4 sequential execution, fresh Colab VM, Tesla T4 (kernel Python 3.13.15; isolated Python 3.12.12, torch 2.14.0+cu130, transformers 4.57.6, safetensors 0.8.0, `cuda: True`; empty Hugging Face cache, no repository checkout) — not a browser Run all | Default settings only (download and verify the 6-file model snapshot → validate → tokenize → split → embed → baselines → adapt → evaluate → classify → export → reload) | 113.6 s (session wall time, including the 53 s environment build) | **PASSED — one pass, no restart, 0 errors.** 17/17 code cells in order (see the record below) |
+
+### 2026-10-04 Colab CLI T4 run of `35126b3` (blob `f3849c55ba63`)
+
+- **Executor:** Google Colab CLI 0.7.4 (`colab exec -f`) on a fresh Colab VM with a Tesla T4. The CLI executes every
+  code cell in order in one kernel; it is **not** a browser Run all, it records no execution counts (order is taken
+  from the `Executing cell k/17` lines in the log), and it renders no forms.
+- **Source identity:** the notebook was fetched from `raw.githubusercontent.com` at the full commit
+  `35126b320e19afcc95bf84113116da0989574ae6`; its Git blob `f3849c55ba63409a520cc08284ed05905c93f713` was checked
+  before the VM was allocated, and the executed notebook's 17 code-cell sources equal the committed ones.
+- **Outcome:** 17/17 code cells, one pass, **no restart**, 0 error outputs, no output asks for a restart. Cells 4–6
+  (the carried `metrics`, `pipeline` and `samples` modules) print nothing by design.
+- **Runtime (cells 1–3):** isolated environment `/content/dimer_isolated_env`, Python 3.12.12, 47 locked packages,
+  built in 53 s; every later cell routed to it; `NOTEBOOK_SOURCE.repository_revision` `958ce30` equals
+  `metadata.dimer.generated_from.revision` (generator `build_notebook.py/2.1`).
+- **Model (cell 7):** `ctheodoris/Geneformer` at `1f7fbae4e469a5f4f1af8c111a529cfe1b3829f5` (Apache-2.0), 6 files
+  (421,180,349 bytes) fetched and 6 verified; device `cuda:0`.
+- **Observed metrics** (observations, not a benchmark; all equal to the worked answers quoted from the local CPU
+  check): 64 cells, 32/32, splits 36/12/16, 348 detected and encoded genes per cell; embedding cosine within 0.9961 /
+  between 0.9948; test baselines majority 0.5 (macro-F1 0.3333), library-size threshold 0.5 (macro-F1 0.4921, AUROC
+  0.4922); 14,767,874 of 104,366,594 parameters trained, validation accuracy 0.5 → 0.5 → 1.0 → 1.0; test accuracy,
+  macro-F1 and AUROC 1.0 (n = 16); 6/6 new cells correct (scores 0.9982–0.9986); adapter 36 tensors (59,075,552
+  bytes), reload parity PASS, maximum score difference 0.0; seven files under `outputs/`.
+- **Evidence files** (`docs/execution-evidence/2026-10-04/`, byte-exact copies):
+  - `geneformer_single_cell_colab_35126b3_colab-cli-t4.ipynb` — SHA-256 `18a8bea925604a7f364d397d9ae4e010ff9bf6a6012d855261b54d1d17c34815`
+  - `geneformer_single_cell_colab_35126b3_colab-cli-t4_exec.log` — SHA-256 `e5ce9892936a13cea1bc40eaffb1922cb48b385a14f1742933daaae1a68650fe`
+  - `geneformer_single_cell_colab_35126b3_colab-cli-t4_run_summary.json` — SHA-256 `7fd2cf9d0749320af94122815e460d55f6e22748d3cb43095ca70c210fae4ec3`
+- **Not exercised:** a browser Run all, the BYOD gate (REL12, step 6) and its refusals, and the Section 13 activity
+  (`EPOCHS = 2`; its worked answer of test accuracy 0.5 with AUROC 1.0 comes from the local CPU check only).
 
 ## Current status
 
@@ -147,5 +176,7 @@ manual restart following the in-kernel install; under NOTEBOOK_SPEC 2.2 (RUN1, R
 so the Notebook Review Framework v1 review (2026-10-03, GF-M1) returned the repository to Candidate. The revised
 notebook builds an isolated, hash-locked environment instead (Linux x86_64 only), and also fixes the review's
 guided-layer (GF-M2), BYOD (GF-m1), provenance-label (GF-m2), activity (GF-m3) and embedding-reading (GF-m4) findings.
-Its local CPU pre-flight (above) is not promotion evidence. Promotion needs a one-pass hosted Run all of the current
-blob with `restarted: false`, the BYOD gate of step 6 (REL12), and the maintainer's approval.
+Its local CPU pre-flight (above) is not promotion evidence. On 2026-10-04 the current blob `f3849c55ba63` (commit
+`35126b3`) completed one pass with no restart and 0 errors on a fresh Colab Tesla T4 under the Colab CLI (17/17 code
+cells, recorded above). That run is sequential CLI execution, not a browser Run all. Status stays **Candidate**:
+promotion still needs the BYOD gate of step 6 (REL12) and the maintainer's approval.
