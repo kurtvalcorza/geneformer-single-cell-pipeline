@@ -272,11 +272,11 @@ def test_byod_intake_errors_are_actionable(nb: dict, tmp_path: Path, monkeypatch
     monkeypatch.chdir(tmp_path)
     # Outside Colab with no BYOD_PATH: a named instruction, not a bare ImportError.
     monkeypatch.setitem(sys.modules, "google.colab", None)
-    with pytest.raises(RuntimeError, match=r"upload dialog exists only on Google Colab\. Set BYOD_PATH"):
+    with pytest.raises(ValueError, match=r"^\(no file\): the upload dialog exists only on Google Colab\. Set BYOD_PATH"):
         _run_section4(nb, _section4_namespace(_pipe()), use_byod=True)
     # A cancelled upload: a named condition, not a bare StopIteration.
     _fake_colab(monkeypatch, [{}])
-    with pytest.raises(ValueError, match=r"Upload exactly one \.csv, \.json or \.jsonl file \(got 0"):
+    with pytest.raises(ValueError, match=r"^\(no file\): upload exactly one \.csv, \.json or \.jsonl file \(got 0"):
         _run_section4(nb, _section4_namespace(_pipe()), use_byod=True)
     # An .h5ad file is refused by its suffix before decoding (it used to raise UnicodeDecodeError).
     h5ad = tmp_path / "cells.h5ad"
