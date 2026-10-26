@@ -176,7 +176,9 @@ manual restart following the in-kernel install; under NOTEBOOK_SPEC 2.2 (RUN1, R
 so the Notebook Review Framework v1 review (2026-10-03, GF-M1) returned the repository to Candidate. The revised
 notebook builds an isolated, hash-locked environment instead (Linux x86_64 only), and also fixes the review's
 guided-layer (GF-M2), BYOD (GF-m1), provenance-label (GF-m2), activity (GF-m3) and embedding-reading (GF-m4) findings.
-Its local CPU pre-flight (above) is not promotion evidence. On 2026-10-04 the current blob `f3849c55ba63` (commit
+Its local CPU pre-flight (above) is not promotion evidence. On 2026-10-04 blob `f3849c55ba63` (commit
 `35126b3`) completed one pass with no restart and 0 errors on a fresh Colab Tesla T4 under the Colab CLI (17/17 code
 cells, recorded above). That run is sequential CLI execution, not a browser Run all. Status stays **Candidate**:
 promotion still needs the BYOD gate of step 6 (REL12) and the maintainer's approval.
+
+The current blob `bddfc5db` (code commit `876206f`) shows a refused BYOD input as one `Refused: <file>: <reason>` line with no traceback, removes the earlier run's results and `outputs/` files and stops Run all at that cell, while genuine failures keep their traceback (NOTEBOOK_SPEC DAT19/DAT20); its hosted Colab T4 runs (the default path and a scripted refusal, `USE_BYOD=True;BYOD_PATH='/content/sample_data/california_housing_test.csv'`) are pending, and the hosted runs of earlier blobs, including `f3849c55ba63`, are history for it (REL14).
