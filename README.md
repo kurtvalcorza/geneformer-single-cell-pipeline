@@ -64,7 +64,7 @@ Tests are offline: injected backends, a stand-in vocabulary and temporary manife
 
 ## Release status
 
-**Candidate.** The notebook was revised after the Notebook Review Framework v1 review (GF-M1..M2, GF-m1..m4). On 2026-10-04 the revised notebook (blob `f3849c55ba63`, commit `35126b3`) completed one pass with no restart and 0 errors on a fresh Colab Tesla T4 under the Colab CLI (17/17 code cells; sequential CLI execution, not a browser Run all). The 2026-09-18 Kaggle Tesla T4 run of the previous blob passed only after a manual restart, which is not a one-pass Run all. The execution records and the remaining promotion gates (BYOD gate REL12, maintainer approval) are in `docs/release-verification.md`.
+**Candidate.** The notebook was revised after the Notebook Review Framework v1 review (GF-M1..M2, GF-m1..m4). On 2026-10-29 the current blob `bddfc5db` (DAT20 refusal fix, code commit `876206f`, PR #9 head `f2531c1`) passed its default path and a scripted DAT20 refusal on a fresh Colab Tesla T4 under the Colab CLI. On 2026-10-04 the earlier revised notebook (blob `f3849c55ba63`, commit `35126b3`; history, REL14) completed one pass with no restart and 0 errors on a fresh Colab Tesla T4 under the Colab CLI (17/17 code cells; sequential CLI execution, not a browser Run all). The 2026-09-18 Kaggle Tesla T4 run of the previous blob passed only after a manual restart, which is not a one-pass Run all. The execution records and the remaining promotion gates (BYOD gate REL12, maintainer approval) are in `docs/release-verification.md`.
 
 ## Licensing
 
