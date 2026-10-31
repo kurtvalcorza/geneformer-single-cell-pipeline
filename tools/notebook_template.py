@@ -61,6 +61,7 @@ BADGES = [
 _DATA_CODE = _py(
     """import json
 import os
+import shutil
 from pathlib import Path
 
 USE_BYOD = False  # @param {type:"boolean"}
@@ -69,6 +70,52 @@ VAL_FRACTION = 0.2  # @param {type:"number"}
 TEST_FRACTION = 0.25  # @param {type:"number"}
 SEED = 42  # @param {type:"integer"}
 
+class BYODRefusal(ValueError):
+    \"\"\"A refused BYOD input: ``BYODRefusal(file_name, reason_and_fix)``.\"\"\"
+
+    dimer_refusal = True
+
+    def __init__(self, file_name, reason):
+        super().__init__(f"{file_name}: {reason}")
+        self.file_name = file_name
+        self.reason = reason
+
+    def _render_traceback_(self):
+        return [f"Refused: {self}"]
+
+
+# What an earlier run of Sections 4-9 left in this session. A refused input removes these results and the
+# outputs/ files below (DAT20), so nothing from that run can pass as a result of the refused file.
+RUN_RESULT_NAMES = (
+    'byod_path', 'file_name', 'uploaded', 'payload', 'records', 'data_source', 'dataset_csv', 'dataset_manifest',
+    'splits', 'split_manifests', 'train_records', 'val_records', 'test_records', 'example_a', 'example_b',
+    'encoded_a', 'encoded_b', 'embed_records', 'embedding_result', 'vectors', 'within', 'between', 'sim', 'writer',
+    'vec', 'baseline_majority', 'baseline_library', 'started', 'adapt_result', 'adapt_seconds', 'step', 'val_metrics',
+    'test_metrics', 'cls_name', 'row', 'evaluation_report', 'run_history', 'new_records', 'new_source',
+    'input_manifest', 'inference_result', 'predictions', 'n_match', 'artifact_dir', 'artifact_manifest',
+    'reloaded_pipe', 'reloaded_result', 'max_score_diff', 'after', 'result_payload', 'path', 'columns', 'CLASSES',
+)
+RUN_OUTPUTS = (
+    'outputs/@STEM@_*',
+)
+
+
+def refuse_byod(file_name, reason):
+    \"\"\"Remove the earlier run's results and outputs/ files, then stop the cell with one Refused: line naming the file and the fix.\"\"\"
+    for name in RUN_RESULT_NAMES:
+        globals().pop(name, None)
+    for pattern in RUN_OUTPUTS:
+        for path in Path('.').glob(pattern):
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                path.unlink()
+    reason = str(reason).rstrip('. ')
+    if 'again' not in reason:
+        reason += '; fix the file, then run this cell and every cell after it again'
+    raise BYODRefusal(file_name, reason + ' (the earlier results of this session and their outputs/ files were removed).') from None
+
+
 os.makedirs('outputs', exist_ok=True)
 # A new dataset needs a new head: drop any head an earlier run trained, so no later cell can evaluate,
 # classify or export it under this dataset's name.
@@ -76,35 +123,48 @@ pipe.reset_adaptation()
 vocabulary = pipe.vocabulary
 print({'tokens': len(vocabulary.tokens), 'corpus_medians': len(vocabulary.medians), 'gene_symbols': len(vocabulary.symbol_to_id), 'encodable_gene_ids': len(vocabulary.gene_ids), 'special_tokens': vocabulary.special})
 
-if USE_BYOD:
-    if BYOD_PATH:
-        byod_path = Path(BYOD_PATH)
-        file_name = byod_path.name
+# DAT20: with USE_BYOD, every problem with your file (path, upload, format, records, genes, classes, split) stops
+# here as one Refused: line. The built-in sample keeps its traceback: a failure there is not your input.
+byod_name = (Path(BYOD_PATH.strip()).name or BYOD_PATH.strip()) if BYOD_PATH.strip() else '(no file)'
+try:
+    if USE_BYOD:
+        if BYOD_PATH:
+            byod_path = Path(BYOD_PATH)
+            file_name = byod_path.name
+            if not byod_path.is_file():
+                raise BYODRefusal(byod_name, f'BYOD_PATH {BYOD_PATH!r} does not exist or is not a file: set it to one .csv, .json or .jsonl file and run this cell again')
+        else:
+            try:
+                from google.colab import files
+            except ImportError:
+                raise BYODRefusal('(no file)', 'the upload dialog exists only on Google Colab. Set BYOD_PATH to your .csv, .json or .jsonl file and run this cell again') from None
+            uploaded = files.upload()
+            if len(uploaded) != 1:
+                raise BYODRefusal(', '.join(sorted(uploaded)) or '(no file)', f'upload exactly one .csv, .json or .jsonl file (got {len(uploaded)}; an empty or cancelled upload gives 0). Run this cell again, or set BYOD_PATH to the file instead')
+            file_name, payload = next(iter(uploaded.items()))
+            byod_name = file_name
+            byod_path = Path('work') / file_name
+            byod_path.parent.mkdir(parents=True, exist_ok=True)
+            byod_path.write_bytes(payload)
+        records = load_byod_dataset(byod_path)
+        data_source = 'BYOD (' + file_name + ')'
+        dataset_csv = 'outputs/@STEM@_byod_dataset.csv'
     else:
-        try:
-            from google.colab import files
-        except ImportError:
-            raise RuntimeError('The upload dialog exists only on Google Colab. Set BYOD_PATH to your .csv, .json or .jsonl file and run this cell again.') from None
-        uploaded = files.upload()
-        if len(uploaded) != 1:
-            raise ValueError(f'Upload exactly one .csv, .json or .jsonl file (got {len(uploaded)}; an empty or cancelled upload gives 0). Run this cell again, or set BYOD_PATH to the file instead.')
-        file_name, payload = next(iter(uploaded.items()))
-        byod_path = Path('work') / file_name
-        byod_path.parent.mkdir(parents=True, exist_ok=True)
-        byod_path.write_bytes(payload)
-    records = load_byod_dataset(byod_path)
-    data_source = 'BYOD (' + file_name + ')'
-    dataset_csv = 'outputs/@STEM@_byod_dataset.csv'
-else:
-    records = generate_sample_dataset(vocabulary)
-    data_source = f'synthetic median-matched programme dataset (seed {SAMPLE_SEED}, {SAMPLE_SIZE} cells)'
-    dataset_csv = 'outputs/@STEM@_sample_dataset.csv'
+        records = generate_sample_dataset(vocabulary)
+        data_source = f'synthetic median-matched programme dataset (seed {SAMPLE_SEED}, {SAMPLE_SIZE} cells)'
+        dataset_csv = 'outputs/@STEM@_sample_dataset.csv'
 
-dataset_manifest = validate_dataset(records, vocabulary=vocabulary)
-CLASSES = dataset_manifest['classes']
-splits = split_dataset(records, val_fraction=VAL_FRACTION, test_fraction=TEST_FRACTION, seed=SEED)
-# Every split must hold every class at least once: the minimum adapt and evaluate apply. A refusal names the split.
-split_manifests = validate_splits(splits, CLASSES, vocabulary=vocabulary)
+    dataset_manifest = validate_dataset(records, vocabulary=vocabulary)
+    CLASSES = dataset_manifest['classes']
+    splits = split_dataset(records, val_fraction=VAL_FRACTION, test_fraction=TEST_FRACTION, seed=SEED)
+    # Every split must hold every class at least once: the minimum adapt and evaluate apply. A refusal names the split.
+    split_manifests = validate_splits(splits, CLASSES, vocabulary=vocabulary)
+except BYODRefusal as exc:
+    refuse_byod(exc.file_name, exc.reason)
+except (TypeError, ValueError, OSError) as exc:
+    if not USE_BYOD:
+        raise
+    refuse_byod(byod_name, f'{type(exc).__name__}: {exc}')
 train_records, val_records, test_records = splits['train'], splits['validation'], splits['test']
 write_dataset_csv(records, dataset_csv)
 
@@ -714,9 +774,9 @@ TEMPLATE = {
         "delete the `weights/geneformer-v2-104m` folder and run Section 3 again.\n"
         "- **Section 3 or 4: \"refusing to unpickle\" / a restricted-unpickler error.** A gene dictionary contains a class outside the "
         "allow-list. That is the safety check working: do not bypass it; re-run Section 3 so the pinned, digest-verified files are used.\n"
-        "- **Section 4: \"Upload exactly one … file (got 0)\".** The upload was cancelled or empty. Run Section 4 again and pick one file, "
+        "- **Section 4: \"Refused: (no file): upload exactly one … file (got 0 …)\".** The upload was cancelled or empty. Run Section 4 again and pick one file, "
         "or set `BYOD_PATH`.\n"
-        "- **Section 4: \"The upload dialog exists only on Google Colab\".** On Kaggle or Jupyter, put your file in the runtime and set "
+        "- **Section 4: \"Refused: (no file): the upload dialog exists only on Google Colab\".** On Kaggle or Jupyter, put your file in the runtime and set "
         "`BYOD_PATH` to its path.\n"
         "- **Section 4: \"unsupported BYOD file type '.h5ad'\" or \"… is not UTF-8 text\".** Export the cells to a genes-as-columns CSV "
         "saved as UTF-8 and run Section 4 again.\n"
